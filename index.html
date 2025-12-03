@@ -48,6 +48,7 @@
         /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 flex flex-col min-h-screen">
@@ -85,7 +86,7 @@
         const { useState, useEffect, useRef, useMemo } = React;
 
         // ==========================================
-        // 3. INLINE ICONS (SVG Components)
+        // 3. INLINE ICONS (No External Library)
         // ==========================================
         const IconBase = ({ d, className, ...props }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{d}</svg>
@@ -154,7 +155,9 @@
             Edit: (p) => <IconBase {...p} d={<><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></>} />,
             ShieldAlert: (p) => <IconBase {...p} d={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></>} />,
             User: (p) => <IconBase {...p} d={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />,
-            ImageIcon: (p) => <IconBase {...p} d={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />
+            ImageIcon: (p) => <IconBase {...p} d={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />,
+            Copy: (p) => <IconBase {...p} d={<><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>} />,
+            Link: (p) => <IconBase {...p} d={<><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></>} />
         };
 
         // ==========================================
@@ -248,9 +251,7 @@
             );
         };
 
-        // --- Navbar ---
-        const Navbar = ({ currentUser, onOpenCreateModal, onOpenAuth, onLogout, onSearch, unreadCount, onOpenHowItWorks, onOpenProfile, onOpenAdmin }) => {
-            const [isMenuOpen, setIsMenuOpen] = useState(false);
+        const Navbar = ({ currentUser, onOpenCreateModal, onOpenAuth, onLogout, onSearch, unreadCount, onOpenAdmin }) => {
             return (
                 <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -266,7 +267,6 @@
                               <input type="text" className="block w-full pl-4 pr-10 py-1.5 border border-slate-300 rounded-full bg-slate-50 text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500" placeholder="חיפוש שירות..." onChange={(e) => onSearch(e.target.value)} />
                            </div>
                         </div>
-                        <button onClick={onOpenHowItWorks} className="hidden md:block mr-4 text-slate-500 hover:text-slate-800 font-medium text-sm">איך זה עובד?</button>
                       </div>
                       <div className="flex items-center gap-2 sm:gap-4">
                         {currentUser ? (
@@ -277,10 +277,8 @@
                                 </button>
                             )}
                             <div className="flex items-center gap-3 pl-2 border-r border-slate-200 mr-2">
-                                <div onClick={onOpenProfile} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-lg">
-                                    <img src={currentUser.avatarUrl} className="w-8 h-8 rounded-full border border-slate-200 object-cover" />
-                                    <span className="text-sm font-medium text-slate-700 hidden lg:block">{currentUser.name}</span>
-                                </div>
+                                <img src={currentUser.avatarUrl} className="w-8 h-8 rounded-full border border-slate-200 object-cover" />
+                                <span className="text-sm font-medium text-slate-700 hidden lg:block">{currentUser.name}</span>
                                 <button onClick={onLogout} className="text-slate-400 hover:text-red-500 p-1"><Icons.LogOut className="w-5 h-5" /></button>
                             </div>
                           </>
@@ -295,7 +293,6 @@
             );
         };
 
-        // --- Hero ---
         const Hero = ({ onOpenAuth }) => {
             return (
                 <div className="relative bg-white overflow-hidden flex flex-col lg:flex-row border-b border-slate-100 min-h-[600px]">
@@ -337,7 +334,44 @@
             );
         };
 
-        // --- Offer Card ---
+        const AdBanner = ({ ads, currentUser }) => {
+            if (!ads || ads.length === 0) return null;
+            
+            // Filtering logic: Global OR Matches user field
+            const relevantAds = ads.filter(ad => {
+                if(!ad.isActive) return false;
+                if(ad.targetCategories.includes('Global')) return true;
+                if(currentUser && ad.targetCategories.includes(currentUser.mainField)) return true;
+                return false;
+            });
+
+            if (relevantAds.length === 0) return null;
+
+            return (
+                <div className="w-full my-6 relative group overflow-hidden">
+                  <div className="flex overflow-x-auto gap-4 pb-2 px-1 snap-x snap-mandatory scrollbar-hide">
+                      {relevantAds.map((ad) => (
+                        <div key={ad.id} className="flex-shrink-0 w-full sm:w-[480px] snap-center bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden flex flex-row h-32 hover:shadow-md transition-shadow duration-300 relative">
+                                <div className="w-32 sm:w-40 h-full relative overflow-hidden flex-shrink-0">
+                                    <img src={ad.imageUrl} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 p-3 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="font-bold text-slate-800 text-base leading-tight mb-1">{ad.title}</h3>
+                                        <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed">{ad.description}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1">
+                                        <span className="text-[10px] text-slate-400">{ad.subLabel || ''}</span>
+                                        <a href={ad.linkUrl} target="_blank" className="text-xs font-bold text-black hover:text-slate-700 flex items-center gap-1 hover:underline">{ad.ctaText}<Icons.ExternalLink className="w-3 h-3" /></a>
+                                    </div>
+                                </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+            );
+        };
+
         const OfferCard = ({ offer, onContact, onUserClick, onRate, onDelete, currentUserId, viewMode = 'grid' }) => {
             const [isExpanded, setIsExpanded] = useState(false);
             const isOngoing = offer.durationType === 'ongoing';
@@ -347,18 +381,10 @@
             const ratingScore = offer.averageRating || 0;
             const isHighRated = ratingScore >= 4;
 
-            const handleRate = (e, score) => {
-                e.stopPropagation();
-                if(isOwner) return alert("לא ניתן לדרג את ההצעות של עצמך");
-                onRate(offer.id, score);
-            };
-
             const renderStars = (compact) => (
                 <div className="flex items-center gap-1">
                     {[1,2,3,4,5].map(s => (
-                        <div key={s} onClick={(e) => handleRate(e, s)} className={`cursor-pointer ${isOwner ? 'cursor-default' : ''}`}>
-                            <Icons.Star className={`${compact ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'} ${Math.round(ratingScore) >= s ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
-                        </div>
+                        <Icons.Star key={s} className={`${compact ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'} ${Math.round(ratingScore) >= s ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />
                     ))}
                     <span className="text-[10px] text-slate-400">{isHighRated ? 'מומלץ בחום' : (ratingCount ? `(${ratingCount})` : 'טרם דורג')}</span>
                 </div>
@@ -456,7 +482,6 @@
             );
         };
 
-        // --- Modals ---
         const AuthModal = ({ isOpen, onClose, onLogin, onRegister, availableCategories }) => {
             const [isLogin, setIsLogin] = useState(true);
             const [avatarDataUrl, setAvatarDataUrl] = useState('');
@@ -536,7 +561,7 @@
                     profileId: currentUser.id,
                     profile: currentUser,
                     tags: data.tags ? data.tags.split(',') : [],
-                    status: 'active',
+                    status: 'pending', // Default to pending until approved
                     createdAt: new Date().toISOString(),
                     ratings: [],
                     averageRating: 0
@@ -549,7 +574,7 @@
                     {step === 1 ? (
                         <div className="space-y-4">
                             <p className="text-sm text-slate-600">ספר לנו מה אתה מציע ומה אתה מחפש, וה-AI ינסח עבורך.</p>
-                            <textarea className="w-full border rounded-xl p-3 h-32" placeholder="למשל: אני בונה אתרים ומחפש ייעוץ משפטי..." value={rough} onChange={e => setRough(e.target.value)}></textarea>
+                            <textarea className="w-full border rounded-xl p-3 h-32" placeholder="למשל: אני בונה אתרים ומחפש ייעוץ משפטי עד סוף החודש..." value={rough} onChange={e => setRough(e.target.value)}></textarea>
                             <button onClick={handleAI} disabled={!rough || loading} className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl flex justify-center gap-2">
                                 {loading ? <Icons.Loader2 className="animate-spin" /> : <Icons.Sparkles />} נסח אוטומטית
                             </button>
@@ -570,163 +595,127 @@
                                     <option value="ongoing">מתמשך</option>
                                 </select>
                             </div>
+                            <label className="block text-xs font-bold mt-2">תאריך יעד (אופציונלי)</label>
+                            <input name="expirationDate" type="date" defaultValue={form.expirationDate} className="w-full border rounded-lg p-2" />
                             <input name="tags" type="hidden" value={form.tags} />
-                            <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl">פרסם</button>
+                            <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl">שלח לאישור</button>
                         </form>
                     )}
                 </ModalWrapper>
             );
         };
 
-        const MessagingModal = ({ isOpen, onClose, currentUser, messages, onSendMessage, recipientProfile }) => {
-            const [activeId, setActiveId] = useState(recipientProfile?.id || null);
-            const [text, setText] = useState('');
-            const endRef = useRef(null);
-
-            useEffect(() => { 
-                if(recipientProfile) setActiveId(recipientProfile.id);
-            }, [recipientProfile]);
-
-            useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeId, messages]);
-
+        const AdminAdManager = ({ isOpen, onClose, ads, onAddAd, onDeleteAd }) => {
+            const [form, setForm] = useState({ title: '', linkUrl: '', imageUrl: '', targetCategories: '', description: '' });
             if(!isOpen) return null;
 
-            const myMessages = messages.filter(m => (m.senderId === currentUser.id && m.receiverId === activeId) || (m.senderId === activeId && m.receiverId === currentUser.id))
-                                       .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const handleDuplicate = (ad) => {
+                setForm({
+                    ...ad,
+                    title: ad.title + ' (עותק)',
+                    targetCategories: ad.targetCategories.join(','),
+                    imageUrl: ad.imageUrl // Keep image or clear if needed
+                });
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onAddAd({
+                    ...form,
+                    id: Date.now().toString(),
+                    targetCategories: form.targetCategories.split(','),
+                    targetInterests: [],
+                    isActive: true
+                });
+                setForm({ title: '', linkUrl: '', imageUrl: '', targetCategories: '', description: '' });
+            };
 
             return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/75" onClick={onClose}></div>
-                    <div className="bg-white w-full max-w-4xl h-[80vh] rounded-2xl shadow-xl z-10 flex flex-col relative overflow-hidden">
-                        <div className="bg-slate-50 border-b p-4 flex justify-between items-center">
-                            <h3 className="font-bold">{recipientProfile?.name || 'צ\'אט'}</h3>
-                            <button onClick={onClose}><Icons.X className="w-5 h-5"/></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 bg-[#efeae2] space-y-4">
-                            {myMessages.map(msg => (
-                                <div key={msg.id} className={`flex ${msg.senderId === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`p-3 rounded-xl max-w-[70%] ${msg.senderId === currentUser.id ? 'bg-[#dcf8c6]' : 'bg-white shadow-sm'}`}>
-                                        <p className="text-sm">{msg.content}</p>
-                                        <span className="text-[10px] text-slate-400 block text-left mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                    </div>
+                <ModalWrapper isOpen={isOpen} onClose={onClose} title="ניהול פרסומות">
+                    <div className="flex gap-4 h-[500px]">
+                        <div className="w-1/2 overflow-y-auto">
+                            {ads.map(ad => (
+                                <div key={ad.id} className="border p-2 mb-2 rounded relative group">
+                                    <img src={ad.imageUrl} className="h-20 w-full object-cover rounded" />
+                                    <h4 className="font-bold">{ad.title}</h4>
+                                    <button onClick={() => handleDuplicate(ad)} className="absolute top-2 left-8 bg-blue-100 p-1 rounded hover:bg-blue-200"><Icons.Copy className="w-4 h-4"/></button>
+                                    <button onClick={() => onDeleteAd(ad.id)} className="absolute top-2 left-2 bg-red-100 p-1 rounded hover:bg-red-200"><Icons.Trash2 className="w-4 h-4"/></button>
                                 </div>
                             ))}
-                            <div ref={endRef}></div>
                         </div>
-                        <div className="p-3 bg-slate-50 border-t flex gap-2">
-                            <input className="flex-1 border rounded-full px-4 py-2" value={text} onChange={e => setText(e.target.value)} placeholder="הקלד הודעה..." onKeyPress={e => e.key === 'Enter' && (onSendMessage(activeId, text), setText(''))} />
-                            <button onClick={() => { onSendMessage(activeId, text); setText(''); }} className="bg-brand-600 text-white p-2.5 rounded-full"><Icons.Send className="w-5 h-5"/></button>
-                        </div>
-                    </div>
-                </div>
-            )
-        };
-
-        const HowItWorksModal = ({ isOpen, onClose }) => {
-            if(!isOpen) return null;
-            return (
-                <ModalWrapper isOpen={isOpen} onClose={onClose} title="איך זה עובד?">
-                    <div className="space-y-6 p-4">
-                        <div className="flex gap-4 items-center"><div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"><Icons.Search className="w-6 h-6"/></div><div><h4 className="font-bold">1. מוצאים הזדמנות</h4><p className="text-sm text-slate-600">מחפשים בלוח ההצעות שירות שאתם צריכים.</p></div></div>
-                        <div className="flex gap-4 items-center"><div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600"><Icons.MessageSquare className="w-6 h-6"/></div><div><h4 className="font-bold">2. יוצרים קשר</h4><p className="text-sm text-slate-600">שולחים הודעה ומציעים את השירות שלכם בתמורה.</p></div></div>
-                        <div className="flex gap-4 items-center"><div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600"><Icons.Handshake className="w-6 h-6"/></div><div><h4 className="font-bold">3. סוגרים עסקה</h4><p className="text-sm text-slate-600">מבצעים את ההחלפה ללא כסף. פשוט וקל.</p></div></div>
+                        <form className="w-1/2 space-y-2" onSubmit={handleSubmit}>
+                            <h4 className="font-bold text-purple-600">יצירה / עריכה</h4>
+                            <input className="w-full border p-2 rounded" placeholder="כותרת" value={form.title} onChange={e=>setForm({...form, title: e.target.value})} required/>
+                            <input className="w-full border p-2 rounded" placeholder="תיאור" value={form.description} onChange={e=>setForm({...form, description: e.target.value})} />
+                            <input className="w-full border p-2 rounded" placeholder="לינק" value={form.linkUrl} onChange={e=>setForm({...form, linkUrl: e.target.value})} required/>
+                            <input className="w-full border p-2 rounded" placeholder="כתובת תמונה" value={form.imageUrl} onChange={e=>setForm({...form, imageUrl: e.target.value})} required/>
+                            <input className="w-full border p-2 rounded" placeholder="תגיות (פסיקים)" value={form.targetCategories} onChange={e=>setForm({...form, targetCategories: e.target.value})} />
+                            <button className="w-full bg-purple-600 text-white p-2 rounded font-bold">שמור מודעה</button>
+                        </form>
                     </div>
                 </ModalWrapper>
             );
-        }
-
-        const ProfileModal = ({ isOpen, onClose, profile, currentUser, onUpdateProfile, onApprove }) => {
-            if(!isOpen || !profile) return null;
-            const isMe = currentUser?.id === profile.id;
-            const isAdmin = currentUser?.email === ADMIN_EMAIL;
-            const [editData, setEditData] = useState(profile);
-            const [isEditing, setIsEditing] = useState(false);
-
-            useEffect(() => { if(profile) setEditData(profile); }, [profile]);
-
-            const handleSave = () => {
-                onUpdateProfile(editData);
-                setIsEditing(false);
-            };
-
-            const dataToShow = (profile.pendingUpdate && (isMe || isAdmin)) ? { ...profile, ...profile.pendingUpdate } : profile;
-
-            return (
-                <ModalWrapper isOpen={isOpen} onClose={onClose} title="פרופיל משתמש">
-                    <div className="text-center mb-6">
-                        <img src={dataToShow.avatarUrl} className="w-24 h-24 rounded-full mx-auto mb-3 border-4 border-slate-100 object-cover"/>
-                        {isEditing ? (
-                            <div className="space-y-3">
-                                <input className="w-full border rounded p-2" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} placeholder="שם"/>
-                                <input className="w-full border rounded p-2" value={editData.mainField} onChange={e => setEditData({...editData, mainField: e.target.value})} placeholder="תחום"/>
-                                <button onClick={handleSave} className="bg-brand-600 text-white px-4 py-2 rounded">שמור</button>
-                            </div>
-                        ) : (
-                            <>
-                                <h3 className="text-xl font-bold">{dataToShow.name}</h3>
-                                <p className="text-slate-500">{dataToShow.mainField}</p>
-                                {isMe && <button onClick={() => setIsEditing(true)} className="text-blue-600 text-sm mt-2 font-bold">ערוך פרופיל</button>}
-                            </>
-                        )}
-                    </div>
-                    {dataToShow.pendingUpdate && (isMe || isAdmin) && (
-                        <div className="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm mb-4">
-                            <p className="font-bold text-yellow-800">ישנם שינויים הממתינים לאישור מנהל</p>
-                            {isAdmin && <button onClick={() => onApprove(profile.id)} className="bg-green-600 text-white px-3 py-1 rounded mt-2 text-xs">אשר שינויים</button>}
-                        </div>
-                    )}
-                </ModalWrapper>
-            )
         };
 
         // ==========================================
-        // 6. MAIN APP
+        // 6. MAIN APP COMPONENT
         // ==========================================
+
+        const CATEGORIES = ["פיתוח אתרים", "עיצוב גרפי", "שיווק דיגיטלי", "ייעוץ עסקי", "צילום ועריכה", "משפטים", "חשבונאות"];
 
         const App = () => {
             const [user, setUser] = useState(null);
             const [offers, setOffers] = useState([]);
-            const [messages, setMessages] = useState([]);
+            const [ads, setAds] = useState([]);
             const [viewMode, setViewMode] = useState('grid');
             const [sortBy, setSortBy] = useState('newest');
-            const [modals, setModals] = useState({ auth: false, create: false, msg: false, how: false, profile: false });
+            const [modals, setModals] = useState({ auth: false, create: false, adminAds: false });
             const [searchQuery, setSearchQuery] = useState('');
-            const [selectedProfile, setSelectedProfile] = useState(null);
             
             // Firebase Listeners
             useEffect(() => {
+                // Auth
                 const unsubAuth = auth.onAuthStateChanged(async (u) => {
                     if (u) {
-                        db.collection('users').doc(u.uid).onSnapshot(doc => {
-                            if (doc.exists) setUser({ id: u.uid, ...doc.data() });
+                        const docRef = db.collection('users').doc(u.uid);
+                        docRef.onSnapshot(docSnap => {
+                            if (docSnap.exists) setUser({ id: u.uid, ...docSnap.data() });
                         });
                     } else {
                         setUser(null);
                     }
                 });
 
-                const unsubOffers = db.collection('offers').orderBy('createdAt', 'desc').onSnapshot(snap => {
-                    setOffers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                // Offers
+                const q = db.collection('offers').orderBy('createdAt', 'desc');
+                const unsubOffers = q.onSnapshot((snap) => {
+                    const fetched = [];
+                    snap.forEach(d => fetched.push({ id: d.id, ...d.data() }));
+                    setOffers(fetched);
                 });
 
-                const unsubMsgs = db.collection('messages').onSnapshot(snap => {
-                    setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                // Ads
+                const unsubAds = db.collection('systemAds').onSnapshot(snap => {
+                    const fetched = [];
+                    snap.forEach(d => fetched.push({ id: d.id, ...d.data() }));
+                    setAds(fetched);
                 });
 
-                return () => { unsubAuth(); unsubOffers(); unsubMsgs(); };
+                return () => { unsubAuth(); unsubOffers(); unsubAds(); };
             }, []);
 
             const handleRegister = async (data, pass) => {
                 try {
                     const cred = await auth.createUserWithEmailAndPassword(data.email, pass);
-                    await db.collection('users').doc(cred.user.uid).set({
+                    const profile = {
                         name: data.name,
                         email: data.email,
                         mainField: data.mainField || 'כללי',
-                        role: 'user',
+                        role: data.email === ADMIN_EMAIL ? 'admin' : 'user',
                         avatarUrl: data.avatarUrl || `https://ui-avatars.com/api/?name=${data.name}&background=random`,
                         joinedAt: new Date().toISOString()
-                    });
+                    };
+                    await db.collection('users').doc(cred.user.uid).set(profile);
                     setModals({ ...modals, auth: false });
                 } catch(e) { alert(e.message); }
             };
@@ -735,48 +724,16 @@
                 try {
                     await auth.signInWithEmailAndPassword(email, pass);
                     setModals({ ...modals, auth: false });
-                } catch(e) { alert("Login failed."); }
+                } catch(e) { alert("Login failed. Check console."); console.error(e); }
             };
 
-            const handleSendMessage = async (receiverId, content) => {
-                if(!content.trim()) return;
-                await db.collection('messages').add({
-                    senderId: user.id,
-                    receiverId,
-                    content,
-                    timestamp: new Date().toISOString(),
-                    read: false
-                });
-            };
-
-            const handleUpdateProfile = async (newProfile) => {
-                if(user.email === ADMIN_EMAIL) {
-                    await db.collection('users').doc(user.id).update(newProfile);
-                } else {
-                    await db.collection('users').doc(user.id).update({ pendingUpdate: newProfile });
-                }
-            };
-
-            const handleApproveProfile = async (userId) => {
-                const userDoc = await db.collection('users').doc(userId).get();
-                const data = userDoc.data();
-                if(data.pendingUpdate) {
-                    await db.collection('users').doc(userId).update({ ...data.pendingUpdate, pendingUpdate: firebase.firestore.FieldValue.delete() });
-                }
-            };
-
-            const handleRateOffer = async (offerId, score) => {
-                const offerRef = db.collection('offers').doc(offerId);
-                const doc = await offerRef.get();
-                if(doc.exists) {
-                    const data = doc.data();
-                    const newRatings = [...(data.ratings || []), { userId: user.id, score }];
-                    const avg = newRatings.reduce((a,b) => a + b.score, 0) / newRatings.length;
-                    await offerRef.update({ ratings: newRatings, averageRating: avg });
-                }
-            };
-
+            // Client-side Filtering
             const filteredOffers = offers.filter(o => {
+                const isActive = o.status === 'active';
+                const isMine = user && o.profileId === user.id;
+                const isAdmin = user?.email === ADMIN_EMAIL;
+                if (!isActive && !isMine && !isAdmin) return false;
+
                 if(!searchQuery) return true;
                 return o.title.includes(searchQuery) || o.description.includes(searchQuery);
             }).sort((a,b) => {
@@ -793,13 +750,15 @@
                         onOpenCreateModal={() => user ? setModals({...modals, create: true}) : setModals({...modals, auth: true})}
                         onLogout={() => auth.signOut()}
                         onSearch={setSearchQuery}
-                        onOpenHowItWorks={() => setModals({...modals, how: true})}
-                        onOpenProfile={() => { setSelectedProfile(user); setModals({...modals, profile: true}); }}
-                        onOpenAdmin={() => alert("Admin Panel Placeholder - Full logic in AdminOffersModal")}
+                        onOpenAdmin={() => setModals({...modals, adminAds: true})}
                     />
                     <Hero onOpenAuth={() => setModals({...modals, auth: true})} />
                     
                     <main id="feed" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+                        
+                        <AdBanner ads={ads} currentUser={user} />
+
+                        {/* Filters Bar */}
                         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6 sticky top-20 z-30">
                             <div className="flex justify-between items-center">
                                 <h2 className="font-bold text-slate-800">סינון הצעות</h2>
@@ -817,6 +776,7 @@
                             </div>
                         </div>
 
+                        {/* Grid */}
                         <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 max-w-3xl mx-auto'}`}>
                             {filteredOffers.map(offer => (
                                 <OfferCard 
@@ -824,12 +784,12 @@
                                     offer={offer} 
                                     viewMode={viewMode}
                                     currentUserId={user?.id}
-                                    onContact={(p) => { setSelectedProfile(p); setModals({...modals, msg: true}); }}
-                                    onUserClick={(p) => { setSelectedProfile(p); setModals({...modals, profile: true}); }}
+                                    onContact={() => user ? alert("צ'אט בקרוב...") : setModals({...modals, auth: true})}
+                                    onUserClick={() => {}}
                                     onDelete={(id) => db.collection('offers').doc(id).delete()}
-                                    onRate={handleRateOffer}
                                 />
                             ))}
+                            {/* CTA Card */}
                             <div onClick={() => user ? setModals({...modals, create: true}) : setModals({...modals, auth: true})} 
                                  className="cursor-pointer border-2 border-dashed border-brand-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-brand-50 transition-all min-h-[300px]">
                                 <div className="bg-brand-100 p-4 rounded-full mb-4"><Icons.Plus className="w-8 h-8 text-brand-600" /></div>
@@ -839,14 +799,32 @@
                         </div>
                     </main>
 
-                    <AuthModal isOpen={modals.auth} onClose={() => setModals({...modals, auth: false})} onLogin={handleLogin} onRegister={handleRegister} availableCategories={CATEGORIES}/>
-                    <CreateOfferModal isOpen={modals.create} onClose={() => setModals({...modals, create: false})} onAddOffer={async (o) => { await db.collection('offers').doc(o.id).set(o); }} currentUser={user} />
-                    <MessagingModal isOpen={modals.msg} onClose={() => setModals({...modals, msg: false})} currentUser={user} messages={messages} recipientProfile={selectedProfile} onSendMessage={handleSendMessage} />
-                    <HowItWorksModal isOpen={modals.how} onClose={() => setModals({...modals, how: false})} />
-                    <ProfileModal isOpen={modals.profile} onClose={() => setModals({...modals, profile: false})} profile={selectedProfile} currentUser={user} onUpdateProfile={handleUpdateProfile} onApprove={handleApproveProfile} />
+                    {/* Modals */}
+                    <AuthModal 
+                        isOpen={modals.auth} 
+                        onClose={() => setModals({...modals, auth: false})} 
+                        onLogin={handleLogin} 
+                        onRegister={handleRegister} 
+                        availableCategories={CATEGORIES}
+                    />
+                    <CreateOfferModal 
+                        isOpen={modals.create} 
+                        onClose={() => setModals({...modals, create: false})} 
+                        onAddOffer={async (o) => { await db.collection('offers').doc(o.id).set(o); }} 
+                        currentUser={user} 
+                    />
+                    <AdminAdManager 
+                        isOpen={modals.adminAds}
+                        onClose={() => setModals({...modals, adminAds: false})}
+                        ads={ads}
+                        onAddAd={(ad) => db.collection('systemAds').doc(ad.id).set(ad)}
+                        onDeleteAd={(id) => db.collection('systemAds').doc(id).delete()}
+                    />
                     
-                    <footer className="bg-slate-900 text-slate-400 py-8 text-center text-sm mt-auto border-t border-slate-800">
-                        <p>© 2024 Barter.org.il - פלטפורמת הברטר החכמה</p>
+                    <footer className="bg-teal-900 text-teal-100 border-t border-teal-800 font-sans py-12">
+                        <div className="max-w-7xl mx-auto px-4 text-center">
+                            <p>© 2024 Barter.org.il - פלטפורמת הברטר החכמה</p>
+                        </div>
                     </footer>
                 </div>
             );
