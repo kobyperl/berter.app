@@ -48,8 +48,21 @@
         /* Animations */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "firebase/": "https://aistudiocdn.com/firebase@^12.6.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "vite": "https://aistudiocdn.com/vite@^7.2.6",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
+  }
+}
+</script>
 </head>
 <body class="bg-slate-50 text-slate-900 flex flex-col min-h-screen">
     
@@ -71,10 +84,18 @@
         };
 
         const GEMINI_API_KEY = "AIzaSyDQpdTeRrPk-6iYgz8zOlgdW7UitohoWzA";
-        const ADMIN_EMAIL = "yaikov.p.0548562029@gmail.com";
-
+        
         // ==========================================
-        // 2. INITIALIZATION
+        // 2. GLOBAL CONSTANTS (DEFINED ONCE)
+        // ==========================================
+        
+        const ADMIN_EMAIL = "yaikov.p.0548562029@gmail.com";
+        
+        const CATEGORIES = ["פיתוח אתרים", "עיצוב גרפי", "שיווק דיגיטלי", "ייעוץ עסקי", "צילום ועריכה", "משפטים", "חשבונאות"];
+        const COMMON_INTERESTS = ["ספורט", "מוזיקה", "טיולים", "קולנוע", "בישול", "טכנולוגיה", "אופנה", "עיצוב", "גיימינג", "נדל״ן"];
+        
+        // ==========================================
+        // 3. INITIALIZATION
         // ==========================================
 
         if (!firebase.apps.length) {
@@ -86,7 +107,7 @@
         const { useState, useEffect, useRef, useMemo } = React;
 
         // ==========================================
-        // 3. INLINE ICONS (No External Library)
+        // 4. INLINE ICONS
         // ==========================================
         const IconBase = ({ d, className, ...props }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{d}</svg>
@@ -161,7 +182,7 @@
         };
 
         // ==========================================
-        // 4. SERVICES
+        // 5. SERVICES
         // ==========================================
 
         const optimizeOfferDescription = async (rawInput) => {
@@ -226,11 +247,8 @@
             });
         };
 
-        const CATEGORIES = ["פיתוח אתרים", "עיצוב גרפי", "שיווק דיגיטלי", "ייעוץ עסקי", "צילום ועריכה", "משפטים", "חשבונאות"];
-        const COMMON_INTERESTS = ["ספורט", "מוזיקה", "טיולים", "קולנוע", "בישול", "טכנולוגיה", "אופנה", "עיצוב", "גיימינג", "נדל״ן"];
-
         // ==========================================
-        // 5. COMPONENTS
+        // 6. COMPONENTS
         // ==========================================
 
         const ModalWrapper = ({ isOpen, onClose, children, title }) => {
@@ -482,7 +500,7 @@
             );
         };
 
-        const AuthModal = ({ isOpen, onClose, onLogin, onRegister, availableCategories }) => {
+        const AuthModal = ({ isOpen, onClose, onLogin, onRegister }) => {
             const [isLogin, setIsLogin] = useState(true);
             const [avatarDataUrl, setAvatarDataUrl] = useState('');
             const fileRef = useRef(null);
@@ -521,7 +539,7 @@
                             <div>
                                 <label className="block text-xs font-bold mb-1">תחום עיסוק</label>
                                 <input list="cats" name="mainField" className="w-full border rounded-lg p-2.5" placeholder="בחר או הקלד..."/>
-                                <datalist id="cats">{availableCategories.map(c=><option key={c} value={c}/>)}</datalist>
+                                <datalist id="cats">{CATEGORIES.map(c=><option key={c} value={c}/>)}</datalist>
                             </div>
                         )}
                         <button type="submit" className="w-full bg-brand-600 text-white font-bold py-3 rounded-xl hover:bg-brand-700">{isLogin ? 'התחבר' : 'הירשם'}</button>
@@ -561,7 +579,7 @@
                     profileId: currentUser.id,
                     profile: currentUser,
                     tags: data.tags ? data.tags.split(',') : [],
-                    status: 'pending', // Default to pending until approved
+                    status: 'pending', 
                     createdAt: new Date().toISOString(),
                     ratings: [],
                     averageRating: 0
@@ -614,7 +632,7 @@
                     ...ad,
                     title: ad.title + ' (עותק)',
                     targetCategories: ad.targetCategories.join(','),
-                    imageUrl: ad.imageUrl // Keep image or clear if needed
+                    imageUrl: ad.imageUrl
                 });
             };
 
@@ -658,10 +676,8 @@
         };
 
         // ==========================================
-        // 6. MAIN APP COMPONENT
+        // 7. MAIN APP COMPONENT
         // ==========================================
-
-        const CATEGORIES = ["פיתוח אתרים", "עיצוב גרפי", "שיווק דיגיטלי", "ייעוץ עסקי", "צילום ועריכה", "משפטים", "חשבונאות"];
 
         const App = () => {
             const [user, setUser] = useState(null);
@@ -805,7 +821,6 @@
                         onClose={() => setModals({...modals, auth: false})} 
                         onLogin={handleLogin} 
                         onRegister={handleRegister} 
-                        availableCategories={CATEGORIES}
                     />
                     <CreateOfferModal 
                         isOpen={modals.create} 
